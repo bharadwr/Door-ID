@@ -7,6 +7,7 @@ from azure.cognitiveservices.vision.face import FaceClient
 from msrest.authentication import CognitiveServicesCredentials
 from azure.cognitiveservices.vision.face.models import TrainingStatusType, Person, SnapshotObjectType, OperationStatusType
 import cv2
+import cloud_mqtt_event
 
 KEY = "c6926d31df9046bc9ac85c54705361ef"
 ENDPOINT = "https://doorid.cognitiveservices.azure.com/"
@@ -53,7 +54,6 @@ def CreatePersonGroup():
     trainPersonGroup()
 
 def AddPersonToPersonGroup(personName="default", imgFile="default.jpg"):
-    face_client.person_group.create(person_group_id=PERSON_GROUP_ID, name=PERSON_GROUP_ID)
 
     #Create new person group
     person = face_client.person_group_person.create(PERSON_GROUP_ID, personName)
@@ -66,40 +66,45 @@ def AddPersonToPersonGroup(personName="default", imgFile="default.jpg"):
     trainPersonGroup()
 
 def IdentifyPersonInImage(personImage="default.jpg"):
-    # Get test image
-    image = open(personImage, 'r+b')
+    try:
+        # Get test image
+        image = open(personImage, 'r+b')
 
-    # Detect faces
-    face_ids = []
-    faces = face_client.face.detect_with_stream(image)
-    for face in faces:
-        face_ids.append(face.face_id)
+        # Detect faces
+        face_ids = []
+        faces = face_client.face.detect_with_stream(image)
+        for face in faces:
+            face_ids.append(face.face_id)
 
-    # Identify faces
-    results = face_client.face.identify(face_ids, PERSON_GROUP_ID)
+        # Identify faces
+        results = face_client.face.identify(face_ids, PERSON_GROUP_ID)
 
-    print('Identifying faces in {}')
-    if not results:
-        print('No person identified in the person group for faces from the {}.'.format(os.path.basename(image.name)))
-    for person in results:
-        return person.candidates[0].confidence # Get topmost confidence score
+        print('Identifying faces in {}')
+        if not results:
+            print('No person identified in the person group for faces from the {}.'.format(os.path.basename(image.name)))
+        for person in results:
+            return person.candidates[0].confidence # Get topmost confidence score
+
+    except (Warning, Exception) as e:
+        return 0.0
 
 def identify_person_at_door():
     cam = cv2.VideoCapture(0)
     s, img = cam.read()
     cam.release()
     cv2.imwrite("user.jpg", img)
-    img1 = Image.open('user.jpg')
     confidence = IdentifyPersonInImage(personImage="user.jpg")
-    if confidence < 0.5:
+    if confidence < 0.7:
         print("Unidentified", confidence)
-        # send image to slack, wait for emoji response
-        # if response is :+1,
-        #   AddPersonToPersonGroup(personName=str(uuid4()), imgFile="user.jpg")
-        # else,
-        #   pis of
+        os.system("scp user.jpg 477grp1@shay.ecn.purdue.edu:/home/shay/a/477grp1/web/Files/.")
+        verdict = cloud_mqtt_event.publish_and_wait("https://engineering.purdue.edu/477grp1/Files/user.jpg")
+        if verdict:
+            print("adding user to shit")
+            AddPersonToPersonGroup(personName=str(uuid4()), imgFile="user.jpg")
+        else:
+            print("calling law enforcement on you")
     else:
         print("Identified", confidence)
 
 if __name__ == "__main__":
-    print(IdentifyPersonInImage(personImage="user.jpg"))
+    identify_person_at_door()
