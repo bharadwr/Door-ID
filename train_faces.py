@@ -1,13 +1,15 @@
-import asyncio, io, glob, os, sys, time, uuid, requests
+import asyncio, io, glob, os, sys, time, requests
+from uuid import uuid4
 from urllib.parse import urlparse
 from io import BytesIO
 from PIL import Image, ImageDraw
 from azure.cognitiveservices.vision.face import FaceClient
 from msrest.authentication import CognitiveServicesCredentials
 from azure.cognitiveservices.vision.face.models import TrainingStatusType, Person, SnapshotObjectType, OperationStatusType
+import cv2
 
-key = "c6926d31df9046bc9ac85c54705361ef"
-endpoint = "https://doorid.cognitiveservices.azure.com/"
+KEY = "c6926d31df9046bc9ac85c54705361ef"
+ENDPOINT = "https://doorid.cognitiveservices.azure.com/"
 face_client = FaceClient(ENDPOINT, CognitiveServicesCredentials(KEY))
 PERSON_GROUP_ID = 'house-residents'
 TARGET_PERSON_GROUP_ID = "4248"
@@ -37,15 +39,15 @@ def CreatePersonGroup():
     ishaan = face_client.person_group_person.create(PERSON_GROUP_ID, "ishaan")
     sreyas = face_client.person_group_person.create(PERSON_GROUP_ID, "sreyas")
     dhruv = face_client.person_group_person.create(PERSON_GROUP_ID, "dhruv")
-    
+
     #Assign images to each person
-    rtvikImages = [file for file in glob.glob('*.jpg') if file.startswith("rtvik")]
-    ishaanImages = [file for file in glob.glob('*.jpg') if file.startswith("ishaan")]
-    sreyasImages = [file for file in glob.glob('*.jpg') if file.startswith("sreyas")]
-    dhruvImages = [file for file in glob.glob('*.jpg') if file.startswith("dhruv")]
-    
+    rtvikImages = [file for file in glob.glob('users/*.jpg') if file.startswith("rtvik")]
+    ishaanImages = [file for file in glob.glob('users/*.jpg') if file.startswith("ishaan")]
+    sreyasImages = [file for file in glob.glob('users/*.jpg') if file.startswith("sreyas")]
+    dhruvImages = [file for file in glob.glob('users/*.jpg') if file.startswith("dhruv")]
+
     addImageToPerson(rtvik, rtvikImages, PERSON_GROUP_ID)
-    addImageToPerson(ishaan, ishaanImages, PERSON_GROUP_ID)    
+    addImageToPerson(ishaan, ishaanImages, PERSON_GROUP_ID)
     addImageToPerson(sreyas, sreyasImages, PERSON_GROUP_ID)
     addImageToPerson(dhruv, dhruvImages, PERSON_GROUP_ID)
     trainPersonGroup()
@@ -55,14 +57,14 @@ def AddPersonToPersonGroup(personName="default", imgFile="default.jpg"):
 
     #Create new person group
     person = face_client.person_group_person.create(PERSON_GROUP_ID, personName)
-    
+
     #Assign images to each person
     personImages = [imgFile]
     addImageToPerson(person, personImages, PERSON_GROUP_ID)
-    
+
     #Retrain PersonGroup with personName
     trainPersonGroup()
-    
+
 def IdentifyPersonInImage(personImage="default.jpg"):
     # Get test image
     image = open(personImage, 'r+b')
@@ -75,14 +77,29 @@ def IdentifyPersonInImage(personImage="default.jpg"):
 
     # Identify faces
     results = face_client.face.identify(face_ids, PERSON_GROUP_ID)
-    
+
     print('Identifying faces in {}')
     if not results:
         print('No person identified in the person group for faces from the {}.'.format(os.path.basename(image.name)))
     for person in results:
-        print('Person for face ID {} is identified in {} with a confidence of {}.'.format(person.face_id, os.path.basename(image.name), person.candidates[0].confidence)) # Get topmost confidence score
-    
-    return results
+        return person.candidates[0].confidence # Get topmost confidence score
 
-if __name__ == "__main__"":
-    pass
+def identify_person_at_door():
+    cam = cv2.VideoCapture(0)
+    s, img = cam.read()
+    cam.release()
+    cv2.imwrite("user.jpg", img)
+    img1 = Image.open('user.jpg')
+    confidence = IdentifyPersonInImage(personImage="user.jpg")
+    if confidence < 0.5:
+        print("Unidentified", confidence)
+        # send image to slack, wait for emoji response
+        # if response is :+1,
+        #   AddPersonToPersonGroup(personName=str(uuid4()), imgFile="user.jpg")
+        # else,
+        #   pis of
+    else:
+        print("Identified", confidence)
+
+if __name__ == "__main__":
+    print(IdentifyPersonInImage(personImage="user.jpg"))

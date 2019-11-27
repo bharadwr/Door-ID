@@ -9,7 +9,7 @@ video_capture = cv2.VideoCapture(0)
 def find_face_from_webcam():
     imageName = ""
     startTime = time()
-    
+
     while True:
         # Capture frame-by-frame
         ret, frame = video_capture.read()
@@ -26,18 +26,18 @@ def find_face_from_webcam():
             imageName = "{}.jpg".format(str(uuid4()))
             cv2.imwrite(imageName, frame)
             break
-            
+
         if time() - startTime > 10:
             break
-            
+
         # Display the resulting frame
         # cv2.imshow('FaceDetection', frame)
 
     # When everything is done, release the capture
     video_capture.release()
     cv2.destroyAllWindows()
-    
+
     return imageName
-    
-if __name__ == "__main__":    
+
+if __name__ == "__main__":
     print(find_face_from_webcam())
