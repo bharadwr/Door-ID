@@ -96,8 +96,12 @@ def identify_person_at_door():
     confidence = IdentifyPersonInImage(personImage="user.jpg")
     if confidence < 0.7:
         print("Unidentified", confidence)
-        os.system("scp user.jpg 477grp1@shay.ecn.purdue.edu:/home/shay/a/477grp1/web/Files/.")
-        verdict = cloud_mqtt_event.publish_and_wait("https://engineering.purdue.edu/477grp1/Files/user.jpg")
+        url = "http://shay.ecn.purdue.edu:40862/"
+        # fin = open('user.jpg', 'rb')
+        files = {'file': open('user.jpg', 'rb')}
+        r = requests.post(url, files=files)
+        # fin.close()
+        verdict = cloud_mqtt_event.publish_and_wait("https://engineering.purdue.edu/477grp1/uploads/user.jpg")
         if verdict:
             print("adding user to shit")
             AddPersonToPersonGroup(personName=str(uuid4()), imgFile="user.jpg")
