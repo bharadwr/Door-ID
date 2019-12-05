@@ -17,7 +17,7 @@ def say_hello(**payload):
             rtm_client.stop()
             sys.exit(0)
         elif ":+1:" in DATA['text']:
-            print("Authorized")
+            print(DATA['text'])
             rtm_client.stop()
             sys.exit(0)
 

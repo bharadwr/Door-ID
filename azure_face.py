@@ -38,14 +38,14 @@ def CreatePersonGroup():
 
     #Assign images to each person
     rtvikImages = [file for file in glob.glob('*.jpg') if file.startswith("rtvik")]
-    ishaanImages = [file for file in glob.glob('*.jpg') if file.startswith("ishaan")]
-    sreyasImages = [file for file in glob.glob('*.jpg') if file.startswith("sreyas")]
-    dhruvImages = [file for file in glob.glob('*.jpg') if file.startswith("dhruv")]
+    # ishaanImages = [file for file in glob.glob('*.jpg') if file.startswith("ishaan")]
+    # sreyasImages = [file for file in glob.glob('*.jpg') if file.startswith("sreyas")]
+    # dhruvImages = [file for file in glob.glob('*.jpg') if file.startswith("dhruv")]
 
     addImageToPerson(rtvik, rtvikImages, PERSON_GROUP_ID)
-    addImageToPerson(ishaan, ishaanImages, PERSON_GROUP_ID)
+    # addImageToPerson(ishaan, ishaanImages, PERSON_GROUP_ID)
     # addImageToPerson(sreyas, sreyasImages, PERSON_GROUP_ID)
-    addImageToPerson(dhruv, dhruvImages, PERSON_GROUP_ID)
+    # addImageToPerson(dhruv, dhruvImages, PERSON_GROUP_ID)
     trainPersonGroup()
 
 def AddPersonToPersonGroup(personName="default", imgFile="default.jpg"):
@@ -76,20 +76,29 @@ def IdentifyPersonInImage(personImage="default.jpg"):
         print('Identifying faces in {}'.format(os.path.basename(image.name)))
         if not results:
             print('No person identified in the person group for faces from {}.'.format(os.path.basename(image.name)))
-            return None
+            print("HERE")
+            return None, None
 
         for person in results:
             try:
-                return person.candidates[0].confidence
+                return person.candidates[0].confidence, person.candidates[0].person_id,
             except IndexError as e:
-                return 0.0
+                return 0.0, None
 
     except (Warning, Exception) as e:
         # Execution error somewhere
         exc_type, exc_obj, exc_tb = sys.exc_info()
         fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
         print(exc_type, fname, exc_tb.tb_lineno)
-        return 0.0
+        return 0.0, None
+
+def GetNameFromImage(personImage="default.jpg"):
+    confidence, person_id = IdentifyPersonInImage(personImage)
+    if person_id is not None:
+        person = face_client.person_group_person.get(person_group_id=PERSON_GROUP_ID, person_id=person_id)
+        return confidence, person.name
+
+    return confidence, None
 
 if __name__ == "__main__":
-    print(IdentifyPersonInImage("danny_devito.jpg"))
+    print(GetNameFromImage("rtvik.jpg"))
