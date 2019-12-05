@@ -3,7 +3,6 @@ from uuid import uuid4
 from azure.cognitiveservices.vision.face import FaceClient
 from msrest.authentication import CognitiveServicesCredentials
 from azure.cognitiveservices.vision.face.models import TrainingStatusType, Person, SnapshotObjectType, OperationStatusType
-import cv2
 
 KEY = "c6926d31df9046bc9ac85c54705361ef"
 ENDPOINT = "https://doorid.cognitiveservices.azure.com/"
@@ -38,14 +37,14 @@ def CreatePersonGroup():
     dhruv = face_client.person_group_person.create(PERSON_GROUP_ID, "dhruv")
 
     #Assign images to each person
-    rtvikImages = [file for file in glob.glob('users/*.jpg') if file.startswith("rtvik")]
-    ishaanImages = [file for file in glob.glob('users/*.jpg') if file.startswith("ishaan")]
-    sreyasImages = [file for file in glob.glob('users/*.jpg') if file.startswith("sreyas")]
-    dhruvImages = [file for file in glob.glob('users/*.jpg') if file.startswith("dhruv")]
+    rtvikImages = [file for file in glob.glob('*.jpg') if file.startswith("rtvik")]
+    ishaanImages = [file for file in glob.glob('*.jpg') if file.startswith("ishaan")]
+    sreyasImages = [file for file in glob.glob('*.jpg') if file.startswith("sreyas")]
+    dhruvImages = [file for file in glob.glob('*.jpg') if file.startswith("dhruv")]
 
     addImageToPerson(rtvik, rtvikImages, PERSON_GROUP_ID)
     addImageToPerson(ishaan, ishaanImages, PERSON_GROUP_ID)
-    addImageToPerson(sreyas, sreyasImages, PERSON_GROUP_ID)
+    # addImageToPerson(sreyas, sreyasImages, PERSON_GROUP_ID)
     addImageToPerson(dhruv, dhruvImages, PERSON_GROUP_ID)
     trainPersonGroup()
 
@@ -74,39 +73,23 @@ def IdentifyPersonInImage(personImage="default.jpg"):
 
         # Identify faces
         results = face_client.face.identify(face_ids, PERSON_GROUP_ID)
-
-        print('Identifying faces in {}')
+        print('Identifying faces in {}'.format(os.path.basename(image.name)))
         if not results:
-            print('No person identified in the person group for faces from the {}.'.format(os.path.basename(image.name)))
+            print('No person identified in the person group for faces from {}.'.format(os.path.basename(image.name)))
+            return None
+
         for person in results:
-            return person.candidates[0].confidence # Get topmost confidence score
+            try:
+                return person.candidates[0].confidence
+            except IndexError as e:
+                return 0.0
 
     except (Warning, Exception) as e:
+        # Execution error somewhere
+        exc_type, exc_obj, exc_tb = sys.exc_info()
+        fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+        print(exc_type, fname, exc_tb.tb_lineno)
         return 0.0
 
-def identify_person_at_door():
-    cam = cv2.VideoCapture(0)
-    time.sleep(1)
-    s, img = cam.read()
-    cam.release()
-    cv2.imwrite("user.jpg", img)
-    confidence = IdentifyPersonInImage(personImage="user.jpg")
-    if confidence <= 0.7:
-        print("Unidentified", confidence)
-        url = "http://40.117.34.205:40862/"
-        files = {'file': open('user.jpg', 'rb')}
-        response = requests.post(url, files=files)
-        decoded = response.content.decode()
-        if "Unauthorized" in decoded:
-            print("calling law enforcement on you")
-
-        elif "Authorized" in decoded:
-            print("adding user to the network")
-            AddPersonToPersonGroup(personName=str(uuid4()), imgFile="user.jpg")
-        else:
-            print("Bruh what this response", decoded)
-    else:
-        print("Identified", confidence)
-
 if __name__ == "__main__":
-    identify_person_at_door()
+    print(IdentifyPersonInImage("danny_devito.jpg"))
