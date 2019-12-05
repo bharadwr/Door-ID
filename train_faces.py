@@ -1,13 +1,9 @@
-import asyncio, io, glob, os, sys, time, requests
+import glob, os, sys, time, requests
 from uuid import uuid4
-from urllib.parse import urlparse
-from io import BytesIO
-from PIL import Image, ImageDraw
 from azure.cognitiveservices.vision.face import FaceClient
 from msrest.authentication import CognitiveServicesCredentials
 from azure.cognitiveservices.vision.face.models import TrainingStatusType, Person, SnapshotObjectType, OperationStatusType
 import cv2
-import cloud_mqtt_event
 
 KEY = "c6926d31df9046bc9ac85c54705361ef"
 ENDPOINT = "https://doorid.cognitiveservices.azure.com/"
@@ -95,7 +91,7 @@ def identify_person_at_door():
     cam.release()
     cv2.imwrite("user.jpg", img)
     confidence = IdentifyPersonInImage(personImage="user.jpg")
-    if confidence < 0.99:
+    if confidence <= 0.7:
         print("Unidentified", confidence)
         url = "http://40.117.34.205:40862/"
         files = {'file': open('user.jpg', 'rb')}
