@@ -90,23 +90,25 @@ def IdentifyPersonInImage(personImage="default.jpg"):
 
 def identify_person_at_door():
     cam = cv2.VideoCapture(0)
+    time.sleep(1)
     s, img = cam.read()
     cam.release()
     cv2.imwrite("user.jpg", img)
     confidence = IdentifyPersonInImage(personImage="user.jpg")
-    if confidence < 0.7:
+    if confidence < 0.99:
         print("Unidentified", confidence)
-        url = "http://shay.ecn.purdue.edu:40862/"
-        # fin = open('user.jpg', 'rb')
+        url = "http://40.117.34.205:40862/"
         files = {'file': open('user.jpg', 'rb')}
-        r = requests.post(url, files=files)
-        # fin.close()
-        verdict = cloud_mqtt_event.publish_and_wait("https://engineering.purdue.edu/477grp1/uploads/user.jpg")
-        if verdict:
-            print("adding user to shit")
+        response = requests.post(url, files=files)
+        decoded = response.content.decode()
+        if "Unauthorized" in decoded:
+            print("calling law enforcement on you")
+
+        elif "Authorized" in decoded:
+            print("adding user to the network")
             AddPersonToPersonGroup(personName=str(uuid4()), imgFile="user.jpg")
         else:
-            print("calling law enforcement on you")
+            print("Bruh what this response", decoded)
     else:
         print("Identified", confidence)
 
