@@ -36,6 +36,7 @@ def take_photo(camID=0, extension=".jpg"):
 
 if __name__ == "__main__":
     flask_url = "http://40.117.34.205:40862/"
+    image_name = ""
     try:
         image_name = take_photo(camID=-1)
         if image_name == "":
@@ -46,8 +47,9 @@ if __name__ == "__main__":
         print(response.content.decode())
     except (Warning, Exception) as e:
         exc_type, exc_obj, exc_tb = sys.exc_info()
-        params = {"error_message" : "%s %s %d %s" % (str(exc_type), str(fname), int(exc_tb.tb_lineno), str(e))}
+        params = {"error_message" : "%s %s %d %s" % (str(exc_type), str(exc_obj), int(exc_tb.tb_lineno), str(e))}
         response = requests.put(flask_url, params=params, timeout=30)
         print(e)
     finally:
-        os.remove(image_name)
+        if os.path.isfile(image_name):
+            os.remove(image_name)
