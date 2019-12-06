@@ -55,6 +55,7 @@ def upload_file():
     elif request.method == 'PUT':
         error_message = request.args.get("error_message")
         slack_webclient.send_message(message="Program error, ended with message: %s" % (error_message))
+        return "Error transmitted"
 
     else:
         return "joe"
