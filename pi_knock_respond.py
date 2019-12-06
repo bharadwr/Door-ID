@@ -46,8 +46,8 @@ if __name__ == "__main__":
         response = requests.post(flask_url, files=files, timeout=120)
         print(response.content.decode())
     except (Warning, Exception) as e:
-        exc_type, exc_obj, exc_tb = sys.exc_info()
-        params = {"error_message" : "%s %s %d %s" % (str(exc_type), str(exc_obj), int(exc_tb.tb_lineno), str(e))}
+        exc_type, _, _ = sys.exc_info()
+        params = {"error_message" : "%s %s" % (str(exc_type), str(e))}
         response = requests.put(flask_url, params=params, timeout=30)
         print(e)
     finally:
